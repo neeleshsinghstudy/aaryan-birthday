@@ -76,3 +76,33 @@ const revealObserver = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.section-heading, .profile-card, .stats article, .timeline-track article, .wish-grid blockquote, .party-card')
   .forEach((element) => revealObserver.observe(element));
+
+const movieScenes = [...document.querySelectorAll('.scene')];
+const moviePlay = document.querySelector('.movie-play');
+let movieTimer = null;
+let movieSceneIndex = 0;
+
+function showMovieScene(index) {
+  movieScenes.forEach((scene, sceneIndex) => scene.classList.toggle('active', sceneIndex === index));
+}
+
+function playMovieScene(index = 0) {
+  window.clearTimeout(movieTimer);
+  if (!movieScenes.length) return;
+  movieSceneIndex = index % movieScenes.length;
+  showMovieScene(movieSceneIndex);
+  const scene = movieScenes[movieSceneIndex];
+  moviePlay.querySelector('span').textContent = 'Playing';
+
+  movieTimer = window.setTimeout(() => {
+    if (movieSceneIndex < movieScenes.length - 1) {
+      playMovieScene(movieSceneIndex + 1);
+    } else {
+      moviePlay.querySelector('span').textContent = 'Play story';
+    }
+  }, Number(scene.dataset.duration || 6500));
+}
+
+if (moviePlay) {
+  moviePlay.addEventListener('click', () => playMovieScene(movieSceneIndex));
+}
