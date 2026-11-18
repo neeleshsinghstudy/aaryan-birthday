@@ -79,8 +79,72 @@ document.querySelectorAll('.section-heading, .profile-card, .stats article, .tim
 
 const movieScenes = [...document.querySelectorAll('.scene')];
 const moviePlay = document.querySelector('.movie-play');
+const movieMusic = document.querySelector('.movie-music');
 let movieTimer = null;
 let movieSceneIndex = 0;
+let musicContext = null;
+let musicTimer = null;
+let musicNoteIndex = 0;
+let musicChordIndex = 0;
+
+const musicChords = [
+  [261.63, 329.63, 392, 493.88],
+  [220, 261.63, 329.63, 392],
+  [174.61, 220, 261.63, 329.63],
+  [196, 246.94, 293.66, 392]
+];
+const musicMelody = [523.25, 493.88, 392, 329.63, 392, 440, 493.88, 392];
+
+function playMusicNote(frequency) {
+  const oscillator = musicContext.createOscillator();
+  const volume = musicContext.createGain();
+  const now = musicContext.currentTime;
+
+  oscillator.type = 'sine';
+  oscillator.frequency.value = frequency;
+  volume.gain.setValueAtTime(0.0001, now);
+  volume.gain.exponentialRampToValueAtTime(0.045, now + 0.08);
+  volume.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+  oscillator.connect(volume);
+  volume.connect(musicContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 1.85);
+}
+
+function setMusicState(isPlaying) {
+  movieMusic.setAttribute('aria-pressed', String(isPlaying));
+  movieMusic.setAttribute('aria-label', isPlaying ? 'Turn gentle music off' : 'Turn gentle music on');
+  movieMusic.querySelector('span').textContent = isPlaying ? 'Music on' : 'Music off';
+}
+
+async function toggleMovieMusic() {
+  if (musicContext) {
+    window.clearInterval(musicTimer);
+    musicTimer = null;
+    await musicContext.close();
+    musicContext = null;
+    setMusicState(false);
+    return;
+  }
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  musicContext = new AudioContextClass();
+  if (musicContext.state === 'suspended') await musicContext.resume();
+  musicNoteIndex = 0;
+  musicChordIndex = 0;
+
+  musicTimer = window.setInterval(() => {
+    const chord = musicChords[musicChordIndex];
+    playMusicNote(chord[musicNoteIndex % chord.length] * 2);
+    playMusicNote(musicMelody[musicNoteIndex % musicMelody.length]);
+    musicNoteIndex += 1;
+    if (musicNoteIndex % 8 === 0) musicChordIndex = (musicChordIndex + 1) % musicChords.length;
+  }, 720);
+
+  setMusicState(true);
+}
 
 function showMovieScene(index) {
   movieScenes.forEach((scene, sceneIndex) => scene.classList.toggle('active', sceneIndex === index));
@@ -105,4 +169,8 @@ function playMovieScene(index = 0) {
 
 if (moviePlay) {
   moviePlay.addEventListener('click', () => playMovieScene(movieSceneIndex));
+}
+
+if (movieMusic) {
+  movieMusic.addEventListener('click', toggleMovieMusic);
 }
